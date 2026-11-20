@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101c2c">
+<title>MiSport GPS</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101c2c;color:white;font-family:Arial,sans-serif}
+header{padding:20px;text-align:center;background:#17283d}
+header h1{margin:0;color:#55e69a;font-size:27px}
+header p{margin:6px 0 0;color:#b8c7d8}
+main{padding:15px;max-width:650px;margin:auto}
+select,button{font-size:16px;border:0;border-radius:12px;padding:14px}
+select{width:100%;background:#263b53;color:white;margin-bottom:12px}
+#map{height:280px;border-radius:15px;margin-bottom:15px;z-index:1}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#1c3048;padding:17px 10px;border-radius:13px;text-align:center}
+.stat small{color:#a9bfd1;font-size:13px}
+.stat strong{display:block;font-size:27px;margin-top:8px}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0}
+button{font-weight:bold;cursor:pointer}
+.start{background:#26d982;color:#10251c}
+.pause{background:#ffc857;color:#30230a}
+.stop{background:#ed6262;color:white}
+.lap{background:#41658a;color:white}
+button:disabled{opacity:.4}
+#status{text-align:center;color:#b8c7d8;margin:12px}
+h3{margin-top:25px}
+#history{padding:0;list-style:none}
+#history li{background:#1c3048;margin:8px 0;padding:13px;border-radius:10px;color:#dce9f5}
+footer{text-align:center;color:#849bb2;padding:20px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<h1>🏃 MiSport GPS</h1>
+<p>Tu entrenamiento, tus recorridos, tus récords</p>
+</header>
+<main>
+<select id="sport">
+<option>🚶 Caminar</option>
+<option>🏃 Correr</option>
+<option>🚴 Bicicleta</option>
+</select>
+
+<div id="map"></div>
+
+<div class="stats">
+<div class="stat"><small>DISTANCIA</small><strong id="distance">0.00 km</strong></div>
+<div class="stat"><small>TIEMPO</small><strong id="time">00:00:00</strong></div>
+<div class="stat"><small>VELOCIDAD</small><strong id="speed">0.0 km/h</strong></div>
+<div class="stat"><small>VUELTAS</small><strong id="laps">0</strong></div>
+</div>
+
+<div class="buttons">
+<button class="start" id="start">▶ INICIAR</button>
+<button class="pause" id="pause" disabled>Ⅱ PAUSAR</button>
+<button class="lap" id="lap" disabled>↻ VUELTA</button>
+<button class="stop" id="stop" disabled>■ FINALIZAR</button>
+</div>
+
+<div id="status">Esperando para comenzar</div>
+
+<h3>🏆 Historial de actividades</h3>
+<ul id="history"></ul>
+</main>
+<footer>MiSport GPS · Tu deporte, tus marcas</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const map=L.map('map').setView([-26.83,-65.22],13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19,attribution:'© OpenStreetMap'
+}).addTo(map);
+
+let marker=null,line=null,points=[],distance=0;
+let watch=null,seconds=0,timer=null,active=false,paused=false;
+let lastPosition=null,lastTime=0,lapCount=0;
+
+function formatTime(s){
+let h=Math.floor(s/3600),m=Math.floor(s%3600/60),v=s%60;
+return [h,m,v].map(x=>String(x).padStart(2,'0')).join(':');
+}
+function update(){
+$('distance').textContent=(distance/1000).toFixed(2)+' km';
+$('time').textContent=formatTime(seconds);
+$('laps').textContent=lapCount;
+}
+function start(){
+if(!navigator.geolocation){
+$('status').textContent='Tu navegador no permite GPS';
+return;
+}
+if(!navigator.onLine){
+$('status').textContent='Necesitás conexión para cargar el mapa';
+}
+if(!active){
+distance=0;seconds=0;lapCount=0;points=[];
+lastPosition=null;lastTime=0;
+if(line)map.removeLayer(line);
+line=L.polyline([],{color:'#26d982',weight:5}).addTo(map);
+}
+active=true;paused=false;
+$('start').disabled=true;
+$('pause').disabled=false;
+$('lap').disabled=false;
+$('stop').disabled=false;
+$('pause').textContent='Ⅱ PAUSAR';
+$('status').textContent='Buscando señal GPS...';
+timer=setInterval(()=>{seconds++;update()},1000);
+watch=navigator.geolocation.watchPosition(pos=>{
+const lat=pos.coords.latitude,lon=pos.coords.longitude;
+const now=pos.timestamp;
+const accuracy=pos.coords.accuracy;
+if(accuracy>35)return;
+const point=[lat,lon];
+if(lastPosition){
+const d=map.distance(lastPosition,point);
+const dt=(now-lastTime)/1000;
+if(d>0&&d<100&&dt>0){
+distance+=d;
+$('speed').textContent=(d/dt*3.6).toFixed(1)+' km/h';
+}
+}
+lastPosition=point;lastTime=now;
+points.push(point);
+line.addLatLng(point);
+if(!marker)marker=L.marker(point).addTo(map);
+else marker.setLatLng(point);
+map.setView(point,17);
+$('status').textContent='GPS conectado · Precisión '+Math.round(accuracy)+' m';
+update();
+},err=>{
+$('status').textContent='GPS: '+err.message+'. Revisá los permisos de ubicación.';
+},{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+}
+function pause(){
+if(!active)return;
+if(!paused){
+paused=true;clearInterval(timer);
+if(watch!==null)navigator.geolocation.clearWatch(watch);
+watch=null;
+$('pause').textContent='▶ CONTINUAR';
+$('status').textContent='Actividad pausada';
+}else{
+paused=false;
+timer=setInterval(()=>{seconds++;update()},1000);
+lastPosition=null;lastTime=0;
+startGPS();
+$('pause').textContent='Ⅱ PAUSAR';
+$('status').textContent='Continuando actividad';
+}
+}
+function startGPS(){
+watch=navigator.geolocation.watchPosition(pos=>{
+if(!active||paused)return;
+const p=[pos.coords.latitude,pos.coords.longitude];
+if(pos.coords.accuracy>35)return;
+if(lastPosition){
+const d=map.distance(lastPosition,p);
+const dt=(pos.timestamp-lastTime)/1000;
+if(d>0&&d<100&&dt>0){
+distance+=d;
+$('speed').textContent=(d/dt*3.6).toFixed(1)+' km/h';
+}
+}
+lastPosition=p;lastTime=pos.timestamp;
+points.push(p);line.addLatLng(p);
+if(!marker)marker=L.marker(p).addTo(map);
+else marker.setLatLng(p);
+map.setView(p,17);update();
+},err=>{$('status').textContent='Error GPS: '+err.message},
+{enableHighAccuracy:true,maximumAge:1000});
+}
+function lap(){
+if(!active||paused)return;
+lapCount++;update();
+$('status').textContent='¡Vuelta '+lapCount+' registrada!';
+}
+function stop(){
+if(!active)return;
+clearInterval(timer);
+if(watch!==null)navigator.geolocation.clearWatch(watch);
+watch=null;active=false;paused=false;
+const record={
+sport:$('sport').value,
+distance:(distance/1000).toFixed(2),
+time:formatTime(seconds),
+date:new Date().toLocaleString('es-AR'),
+laps:lapCount
+};
+if(distance>0||seconds>0){
+let history=JSON.parse(localStorage.getItem('misportHistory')||'[]');
+history.unshift(record);
+localStorage.setItem('misportHistory',JSON.stringify(history));
+}
+showHistory();
+$('start').disabled=false;
+$('pause').disabled=true;
+$('lap').disabled=true;
+$('stop').disabled=true;
+$('pause').textContent='Ⅱ PAUSAR';
+$('status').textContent='Actividad finalizada. ¡Buen trabajo!';
+}
+function showHistory(){
+let history=JSON.parse(localStorage.getItem('misportHistory')||'[]');
+$('history').innerHTML=history.map(x=>
+`<li><b>${x.sport}</b><br>${x.date}<br>
+${x.distance} km · ${x.time} · ${x.laps} vueltas</li>`
+).join('')||'<li>Todavía no hay actividades guardadas.</li>';
+}
+$('start').onclick=start;
+$('pause').onclick=pause;
+$('lap').onclick=lap;
+$('stop').onclick=stop;
+showHistory();
+update();
+</script>
+</body>
+  </html>
+  
