@@ -5,64 +5,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101c2c">
-<title>MiSport GPS</title>
+<title>MiSport GPS 3.0</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#101c2c;color:white;font-family:Arial,sans-serif}
+body{margin:0;background:#101c2c;color:white;font-family:Arial}
 header{text-align:center;padding:20px;background:#17283d}
-h1{margin:0;color:#55e69a}
-header p{color:#b8c7d8;margin-bottom:0}
+h1{color:#55e69a;margin:0}
 main{max-width:650px;margin:auto;padding:15px}
-select,button{width:100%;padding:14px;border:0;border-radius:11px;font-size:16px}
+select,button{width:100%;padding:14px;border:0;border-radius:10px;font-size:15px}
 select{background:#263b53;color:white;margin:5px 0 12px}
-#map{height:270px;border-radius:14px;margin-bottom:14px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{background:#1c3048;padding:16px 8px;border-radius:12px;text-align:center}
+#map{height:260px;border-radius:13px;margin:12px 0}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stat,.panel{background:#1c3048;padding:15px;border-radius:12px}
+.stat{text-align:center}
 .stat small{color:#b8c7d8}
-.stat strong{display:block;font-size:25px;margin-top:8px}
-.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
-button{font-weight:bold;cursor:pointer}
+.stat strong{display:block;font-size:24px;margin-top:8px}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+button{font-weight:bold}
 .start{background:#26d982;color:#10251c}
-.pause{background:#ffc857;color:#30230a}
-.stop{background:#ed6262;color:white}
+.pause{background:#ffc857}
 .lap{background:#41658a;color:white}
+.stop{background:#ed6262;color:white}
 button:disabled{opacity:.4}
 #status{text-align:center;color:#b8c7d8;padding:10px}
-.panel{background:#1c3048;padding:14px;border-radius:12px;margin-bottom:12px}
-.panel label{display:block;margin:8px 0;color:#b8c7d8}
-h3{margin-top:24px}
-li{background:#1c3048;padding:12px;margin:8px 0;border-radius:10px}
+.panel{margin:12px 0}
+.panel h3{margin-top:0;color:#55e69a}
+.record{background:#263b53;padding:12px;border-radius:9px;margin:8px 0}
 footer{text-align:center;color:#849bb2;padding:20px}
 </style>
 </head>
 <body>
 <header>
-<h1>🏃 MiSport GPS</h1>
-<p>Tu entrenamiento, tus recorridos y tus récords</p>
+<h1>🏃 MiSport GPS 3.0</h1>
+<p>Entrená. Superate. Rompé tus récords.</p>
 </header>
 <main>
 
 <div class="panel">
-<label>Actividad</label>
+<h3>⚙️ Nueva actividad</h3>
 <select id="sport">
 <option>🚶 Caminar</option>
 <option>🏃 Correr</option>
 <option>🚴 Bicicleta</option>
 </select>
-<label>Modalidad</label>
 <select id="mode">
 <option value="free">Recorrido libre</option>
 <option value="circuit">Circuito con vueltas automáticas</option>
 </select>
-<div id="lapSettings" style="display:none">
-<label>Distancia de cada vuelta</label>
+<div id="settings" style="display:none">
 <select id="lapDistance">
-<option value="200">200 metros</option>
-<option value="400" selected>400 metros</option>
-<option value="500">500 metros</option>
-<option value="1000">1 kilómetro</option>
-<option value="2000">2 kilómetros</option>
+<option value="200">Vuelta de 200 metros</option>
+<option value="400" selected>Vuelta de 400 metros</option>
+<option value="500">Vuelta de 500 metros</option>
+<option value="1000">Vuelta de 1 kilómetro</option>
+<option value="2000">Vuelta de 2 kilómetros</option>
 </select>
 </div>
 </div>
@@ -72,7 +69,7 @@ footer{text-align:center;color:#849bb2;padding:20px}
 <div class="stats">
 <div class="stat"><small>DISTANCIA</small><strong id="distance">0.00 km</strong></div>
 <div class="stat"><small>TIEMPO</small><strong id="time">00:00:00</strong></div>
-<div class="stat"><small>VELOCIDAD</small><strong id="speed">0.0 km/h</strong></div>
+<div class="stat"><small>VELOCIDAD</small><strong id="speed">0 km/h</strong></div>
 <div class="stat"><small>VUELTAS</small><strong id="laps">0</strong></div>
 <div class="stat"><small>ÚLTIMA VUELTA</small><strong id="lastLap">--:--</strong></div>
 <div class="stat"><small>MEJOR VUELTA</small><strong id="bestLap">--:--</strong></div>
@@ -81,15 +78,29 @@ footer{text-align:center;color:#849bb2;padding:20px}
 <div class="buttons">
 <button class="start" id="start">▶ INICIAR</button>
 <button class="pause" id="pause" disabled>Ⅱ PAUSAR</button>
-<button class="lap" id="manualLap" disabled>↻ VUELTA MANUAL</button>
+<button class="lap" id="manualLap" disabled>↻ VUELTA</button>
 <button class="stop" id="stop" disabled>■ FINALIZAR</button>
 </div>
 <div id="status">Esperando para comenzar</div>
 
-<h3>🏆 Historial de actividades</h3>
-<ul id="history"></ul>
+<div class="panel">
+<h3>🏆 Mis récords personales</h3>
+<div id="records">Todavía no hay récords.</div>
+</div>
+
+<div class="panel">
+<h3>📊 Estadísticas semanales y mensuales</h3>
+<div id="weekly">Esta semana: 0 km</div>
+<div id="monthly">Este mes: 0 km</div>
+</div>
+
+<div class="panel">
+<h3>📈 Mis actividades</h3>
+<div id="history"></div>
+</div>
+
 </main>
-<footer>MiSport GPS · Tu deporte, tus marcas</footer>
+<footer>MiSport GPS 3.0 · Tu deporte, tus marcas</footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -100,10 +111,10 @@ maxZoom:19,attribution:'© OpenStreetMap'
 }).addTo(map);
 
 let active=false,paused=false,watch=null,timer=null;
-let seconds=0,distance=0,lastPosition=null,lastTimestamp=0;
+let seconds=0,distance=0,maxSpeed=0;
+let lastPosition=null,lastTimestamp=0;
 let line=null,marker=null,lapCount=0,lapStart=0;
-let lastLapSeconds=null,bestLapSeconds=null;
-let lapRecords=[];
+let lastLap=null,bestLap=null,lapRecords=[];
 
 function fmt(s){
 if(s===null)return '--:--';
@@ -115,31 +126,28 @@ function update(){
 $('distance').textContent=(distance/1000).toFixed(2)+' km';
 $('time').textContent=fmt(seconds);
 $('laps').textContent=lapCount;
-$('lastLap').textContent=fmt(lastLapSeconds);
-$('bestLap').textContent=fmt(bestLapSeconds);
+$('lastLap').textContent=fmt(lastLap);
+$('bestLap').textContent=fmt(bestLap);
 }
-function showHistory(){
-let h=JSON.parse(localStorage.getItem('misportHistory')||'[]');
-$('history').innerHTML=h.length?h.map(x=>
-`<li><b>${x.sport}</b><br>${x.date}<br>${x.distance} km · ${x.time} · ${x.laps} vueltas</li>`
-).join(''):'<li>Todavía no hay actividades guardadas.</li>';
+function getHistory(){
+return JSON.parse(localStorage.getItem('misportHistory')||'[]');
 }
-$('mode').onchange=()=>{
-$('lapSettings').style.display=$('mode').value==='circuit'?'block':'none';
-};
+function saveHistory(h){
+localStorage.setItem('misportHistory',JSON.stringify(h));
+}
 function startTimer(){
 clearInterval(timer);
 timer=setInterval(()=>{seconds++;update()},1000);
 }
+$('mode').onchange=()=>{
+$('settings').style.display=$('mode').value==='circuit'?'block':'none';
+};
 function gpsStart(){
-if(!navigator.geolocation){
-$('status').textContent='Este navegador no permite GPS';return;
-}
 watch=navigator.geolocation.watchPosition(pos=>{
 if(!active||paused)return;
 let accuracy=pos.coords.accuracy;
 if(accuracy>35){
-$('status').textContent='Buscando mejor señal GPS... Precisión '+Math.round(accuracy)+' m';
+$('status').textContent='Buscando mejor señal GPS... '+Math.round(accuracy)+' m';
 return;
 }
 let p=[pos.coords.latitude,pos.coords.longitude];
@@ -149,43 +157,50 @@ let d=map.distance(lastPosition,p);
 let dt=(now-lastTimestamp)/1000;
 if(d>0&&d<100&&dt>0){
 distance+=d;
-$('speed').textContent=(d/dt*3.6).toFixed(1)+' km/h';
+let velocity=d/dt*3.6;
+if(velocity<45){
+maxSpeed=Math.max(maxSpeed,velocity);
+$('speed').textContent=velocity.toFixed(1)+' km/h';
+}
 if($('mode').value==='circuit'){
-let lapMeters=Number($('lapDistance').value);
-while(distance-lapStart>=lapMeters){
-lapStart+=lapMeters;
+let target=Number($('lapDistance').value);
+while(distance-lapStart>=target){
+lapStart+=target;
 lapCount++;
-lastLapSeconds=seconds-(lapRecords.reduce((a,b)=>a+b,0));
-lapRecords.push(lastLapSeconds);
-if(bestLapSeconds===null||lastLapSeconds<bestLapSeconds)bestLapSeconds=lastLapSeconds;
-$('status').textContent='¡Vuelta automática '+lapCount+' completada!';
+let previous=lapRecords.reduce((a,b)=>a+b,0);
+lastLap=seconds-previous;
+lapRecords.push(lastLap);
+if(bestLap===null||lastLap<bestLap)bestLap=lastLap;
+$('status').textContent='¡Vuelta '+lapCount+' completada!';
 }
 }
 }
 }
 lastPosition=p;lastTimestamp=now;
-if(line)line.addLatLng(p);
+line.addLatLng(p);
 if(!marker)marker=L.marker(p).addTo(map);
 else marker.setLatLng(p);
 map.setView(p,17);
 $('status').textContent='GPS conectado · Precisión '+Math.round(accuracy)+' m';
 update();
 },err=>{
-$('status').textContent='Error GPS: '+err.message+' · Revisá los permisos';
+$('status').textContent='Error GPS: '+err.message;
 },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
 }
 $('start').onclick=()=>{
 if(active)return;
 active=true;paused=false;
-seconds=0;distance=0;lapCount=0;lapStart=0;
-lastLapSeconds=null;bestLapSeconds=null;lapRecords=[];
-lastPosition=null;lastTimestamp=0;
+seconds=0;distance=0;maxSpeed=0;
+lapCount=0;lapStart=0;lastLap=null;bestLap=null;
+lapRecords=[];lastPosition=null;lastTimestamp=0;
 if(line)map.removeLayer(line);
 line=L.polyline([],{color:'#26d982',weight:5}).addTo(map);
 if(marker){map.removeLayer(marker);marker=null}
-$('speed').textContent='0.0 km/h';
-$('start').disabled=true;$('pause').disabled=false;
-$('stop').disabled=false;$('manualLap').disabled=false;
+$('speed').textContent='0 km/h';
+$('start').disabled=true;
+$('pause').disabled=false;
+$('stop').disabled=false;
+$('manualLap').disabled=false;
 startTimer();gpsStart();
 $('status').textContent='Iniciando GPS...';
 };
@@ -204,8 +219,7 @@ $('status').textContent='Continuando actividad';
 }
 };
 $('manualLap').onclick=()=>{
-if(!active||paused)return;
-if($('mode').value==='circuit')return;
+if(!active||paused||$('mode').value==='circuit')return;
 lapCount++;
 $('status').textContent='Vuelta manual '+lapCount+' registrada';
 update();
@@ -215,24 +229,50 @@ if(!active)return;
 clearInterval(timer);
 if(watch!==null)navigator.geolocation.clearWatch(watch);
 watch=null;active=false;paused=false;
-let record={
+let h=getHistory();
+h.unshift({
 sport:$('sport').value,
-distance:(distance/1000).toFixed(2),
-time:fmt(seconds),laps:lapCount,
-date:new Date().toLocaleString('es-AR')
-};
-if(distance>0||seconds>0){
-let h=JSON.parse(localStorage.getItem('misportHistory')||'[]');
-h.unshift(record);
-localStorage.setItem('misportHistory',JSON.stringify(h));
-}
-$('start').disabled=false;$('pause').disabled=true;
-$('stop').disabled=true;$('manualLap').disabled=true;
+distance:Number((distance/1000).toFixed(3)),
+time:seconds,
+maxSpeed:Number(maxSpeed.toFixed(2)),
+laps:lapCount,
+date:new Date().toISOString()
+});
+saveHistory(h);
+$('start').disabled=false;
+$('pause').disabled=true;
+$('stop').disabled=true;
+$('manualLap').disabled=true;
 $('pause').textContent='Ⅱ PAUSAR';
-$('status').textContent='Actividad finalizada. ¡Buen trabajo!';
-showHistory();update();
+$('status').textContent='Actividad guardada. ¡Buen trabajo!';
+showStats();update();
 };
-showHistory();update();
+function showStats(){
+let h=getHistory();
+let today=new Date();
+let weekStart=new Date(today);
+weekStart.setHours(0,0,0,0);
+weekStart.setDate(today.getDate()-((today.getDay()+6)%7));
+let monthStart=new Date(today.getFullYear(),today.getMonth(),1);
+let week=h.filter(x=>new Date(x.date)>=weekStart);
+let month=h.filter(x=>new Date(x.date)>=monthStart);
+let sum=a=>a.reduce((s,x)=>s+Number(x.distance||0),0);
+let total=sum(h);
+let longest=Math.max(0,...h.map(x=>Number(x.distance||0)));
+let fastest=Math.max(0,...h.map(x=>Number(x.maxSpeed||0)));
+let bestPace=Math.min(Infinity,...h.filter(x=>x.distance>0&&x.time>0).map(x=>x.time/x.distance));
+$('records').innerHTML=`
+<div class="record">🥇 Mayor distancia: <b>${longest.toFixed(2)} km</b></div>
+<div class="record">⚡ Mayor velocidad: <b>${fastest.toFixed(1)} km/h</b></div>
+<div class="record">🏃 Mejor ritmo promedio: <b>${Number.isFinite(bestPace)?fmt(Math.round(bestPace))+' por km':'--'}</b></div>
+<div class="record">🌎 Distancia acumulada: <b>${total.toFixed(2)} km</b></div>`;
+$('weekly').textContent='Esta semana: '+sum(week).toFixed(2)+' km · '+week.length+' actividades';
+$('monthly').textContent='Este mes: '+sum(month).toFixed(2)+' km · '+month.length+' actividades';
+$('history').innerHTML=h.length?h.map(x=>
+`<div class="record"><b>${x.sport}</b><br>${new Date(x.date).toLocaleString('es-AR')}<br>${Number(x.distance).toFixed(2)} km · ${fmt(x.time)} · ${x.laps} vueltas</div>`
+).join(''):'Todavía no hay actividades guardadas.';
+}
+showStats();update();
 </script>
 </body>
 </html>
